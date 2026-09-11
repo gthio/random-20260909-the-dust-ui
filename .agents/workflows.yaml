@@ -1,0 +1,309 @@
+# Workflow definitions for /pipeline.
+#
+# This file is the machine-readable source of truth for workflow sequences.
+# The /pipeline executor (.claude/commands/pipeline.md) reads from here.
+# Human-facing tables in .agents/README.md are hand-edited; keep them in sync.
+# After editing, run `python3 .agents/check-workflows.py` to verify this file
+# is sound and the README.md / context.md tables still agree.
+#
+# /pipeline runs each workflow autonomously end-to-end — there are no human
+# gates between steps. Agents capture uncertainty inside their own output
+# files (design notes, review-N.md, journal.md). The human reads the final
+# branch and merges manually (no auto-merge).
+#
+# Schema (one workflow):
+#   <name>:
+#     description:     One-line summary.
+#     branch_prefix:   Branch path prefix Scout uses (and agents validate against).
+#     needs_backlog:   If true, $input must resolve to .docs/backlog/<id>-<prefix>-<short>.md.
+#     terminal_agent:  Agent that moves the board row from In Progress → Done.
+#     steps[]:
+#       id:            Stable step handle (referenced by on_block.loop_back_to).
+#       agent:         Slash command name (without leading /). Must have a matching
+#                      .claude/commands/<agent>.md file.
+#       args:          Template list. Tokens substituted at runtime: $input, $id, $short_name.
+#       on_block:      (optional, review-style steps only) BLOCKER-rejection loop.
+#         loop_back_to:  Step id to re-invoke when this step finds BLOCKERs.
+#         max_rounds:    Hard cap on rework cycles before pipeline writes a
+#                        blocked-summary.md and stops (skipping the terminal step).
+
+workflows:
+
+  planning-intake:
+    description: Digest raw material (deck export, spec folder, email, paste) into an intake record — cited summary, route per unit of work, gaps, questions, stack proposal — plus draft brief / stack files the route needs, with <TBD> markers (repeatable; a re-run overwrites the record and keeps its decisions). Runs first when new work arrives. Skips Scout — writes .docs/requirements/ only; no branch, no workspace, no board row. Autonomous — never asks, never picks a stack.
+    branch_prefix: planning-intake
+    needs_backlog: false
+    terminal_agent: intake
+    steps:
+      - id: digest
+        agent: intake
+        args: [$input]
+
+  planning-product:
+    description: Bootstrap PRODUCT.md + feature backlog from a brief (one-shot).
+    branch_prefix: planning-product
+    needs_backlog: false
+    terminal_agent: founder-architect
+    steps:
+      - id: bootstrap
+        agent: founder-architect
+        args: [$input]
+
+  planning-groundwork:
+    description: Turn a spec into a drainable board — stack gate, .docs/ + AI.md/CLAUDE.md scaffold, walking-skeleton + chassis initiation backlog (one-shot). Extracted spec → Full mode; human-authored functional spec in .docs/requirements/ → Requirement mode (same outputs, plus /refiner for the remainder). No spec (or --init) → Init mode, scaffold-only, queues nothing. Skips Scout — queues only, creates no branch or workspace.
+    branch_prefix: planning-groundwork
+    needs_backlog: false
+    terminal_agent: groundwork
+    steps:
+      - id: groundwork
+        agent: groundwork
+        args: [$input]
+
+  planning-refine:
+    description: Slice one story / functional spec / API contract into a queued feature backlog (repeatable). Skips Scout — queues only, creates no branch or workspace.
+    branch_prefix: planning-refine
+    needs_backlog: false
+    terminal_agent: refiner
+    steps:
+      - id: slice
+        agent: refiner
+        args: [$input]
+
+  planning-refine-ui:
+    description: Slice one design handoff bundle into a queued, UI-scoped feature backlog (repeatable). Skips Scout — queues only, creates no branch or workspace.
+    branch_prefix: planning-refine-ui
+    needs_backlog: false
+    terminal_agent: refiner-ui
+    steps:
+      - id: slice
+        agent: refiner-ui
+        args: [$input]
+
+  planning-refine-chassis:
+    description: Diff the non-functional spec view against delivered code; queue chassis-gap feature specs (repeatable). Skips Scout — queues only, creates no branch or workspace.
+    branch_prefix: planning-refine-chassis
+    needs_backlog: false
+    terminal_agent: refiner-chassis
+    steps:
+      - id: slice
+        agent: refiner-chassis
+        args: [$input]
+
+  planning-program:
+    description: Articulate one program-level requirement into cross-repo program stories; split each into per-repo sub-stories + a contract delta; hand off into sibling repo backlogs (repeatable). Runs in the program home repo. Skips Scout — queues only, creates no branch or workspace.
+    branch_prefix: planning-program
+    needs_backlog: false
+    terminal_agent: refiner-program
+    steps:
+      - id: articulate
+        agent: refiner-program
+        args: [$input]
+
+  delivery-feature:
+    description: New functionality from a feature spec.
+    branch_prefix: delivery-feature
+    needs_backlog: true
+    terminal_agent: tech-writer
+    steps:
+      - id: scout
+        agent: scout
+        args: [delivery-feature, $id, $short_name]
+      - id: design
+        agent: architect
+        args: [$input]
+      - id: tests
+        agent: developer-tests
+        args: [$input]
+      - id: impl
+        agent: developer-impl
+        args: [$input]
+      - id: review
+        agent: reviewer
+        args: [$input]
+        on_block: { loop_back_to: impl, max_rounds: 3 }
+      - id: docs
+        agent: tech-writer
+        args: [$input]
+
+  delivery-bugfix:
+    description: Fix a defect with minimal change.
+    branch_prefix: delivery-bugfix
+    needs_backlog: true
+    terminal_agent: tech-writer
+    steps:
+      - id: scout
+        agent: scout
+        args: [delivery-bugfix, $id, $short_name]
+      - id: fix
+        agent: bugfix
+        args: [$input]
+      - id: review
+        agent: reviewer
+        args: [$input]
+        on_block: { loop_back_to: fix, max_rounds: 3 }
+      - id: docs
+        agent: tech-writer
+        args: [$input]
+
+  delivery-refactor:
+    description: Improve structure; behavior preserved.
+    branch_prefix: delivery-refactor
+    needs_backlog: true
+    terminal_agent: tech-writer
+    steps:
+      - id: scout
+        agent: scout
+        args: [delivery-refactor, $id, $short_name]
+      - id: rework
+        agent: refactor
+        args: [$input]
+      - id: review
+        agent: reviewer
+        args: [$input]
+        on_block: { loop_back_to: rework, max_rounds: 3 }
+      - id: docs
+        agent: tech-writer
+        args: [$input]
+
+  delivery-gardening:
+    description: Readability polish; behavior unchanged.
+    branch_prefix: delivery-gardening
+    needs_backlog: true
+    # Reviewer runs last and is the board-terminal agent: on a clean verdict it
+    # moves the row to Done; on BLOCKERs it loops back to polish and the row
+    # stays In Progress. Gardener never marks Done — that would put the row in
+    # Done before the work has passed review (and break stall handling, which
+    # expects the row in In Progress).
+    terminal_agent: reviewer
+    steps:
+      - id: scout
+        agent: scout
+        args: [delivery-gardening, $id, $short_name]
+      - id: polish
+        agent: gardener
+        args: [$input]
+      - id: review
+        agent: reviewer
+        args: [$input]
+        on_block: { loop_back_to: polish, max_rounds: 3 }
+
+  auditor-strategy:
+    description: Devil's-advocate audit; produces a report, no merge.
+    branch_prefix: auditor-strategy
+    needs_backlog: false
+    terminal_agent: auditor-strategy
+    # Standalone (no backlog file): $input is the <short-name> slug. Scout
+    # self-assigns the <ID> (today + per-day sequence), so $id is not passed.
+    # Renamed from `advice` (agent: Advisor) — pre-rename runs live under the
+    # `advice` branch/workspace paths; historical event logs keep that type.
+    steps:
+      - id: scout
+        agent: scout
+        args: [auditor-strategy, $short_name]
+      - id: audit
+        agent: auditor-strategy
+        args: [$short_name]
+
+  auditor-principle:
+    description: Sweep the codebase against the knowledge repo; verified, cited refactoring-findings report, no merge.
+    branch_prefix: auditor-principle
+    needs_backlog: false
+    terminal_agent: auditor-principle
+    # Standalone (no backlog file): $input is the <short-name> slug. Scout
+    # self-assigns the <ID> (today + per-day sequence), so $id is not passed.
+    # First-class `auditor-principle` board type (branch and workspace mirror
+    # the workflow name); the Principle Auditor is the terminal agent. Prior
+    # audits from before the split live under the legacy `advice` type (now
+    # `auditor-strategy`) — the auditor prompt still searches those paths for
+    # its Clean Bill.
+    # Event-triggered, never scheduled — a human running /pipeline auditor-principle
+    # IS the human-request trigger (see .agents/prompts/auditor-principle.md).
+    steps:
+      - id: scout
+        agent: scout
+        args: [auditor-principle, $short_name]
+      - id: audit
+        agent: auditor-principle
+        args: [$short_name]
+
+  maintenance-docs:
+    description: Sync README / CHANGELOG / .docs/ with the codebase.
+    branch_prefix: maintenance-docs
+    needs_backlog: false
+    terminal_agent: tech-writer
+    # Standalone (no backlog file): $input is the <short-name> slug. Scout
+    # self-assigns the <ID> (today + per-day sequence), so $id is not passed.
+    # Tech Writer runs in General Mode (per prompts/tech-writer.md) on the
+    # branch Scout cut, deriving the workspace from the branch.
+    steps:
+      - id: scout
+        agent: scout
+        args: [maintenance-docs, $short_name]
+      - id: sync
+        agent: tech-writer
+        args: [$short_name]
+
+  maintenance-housekeeping:
+    description: Archive completed work; prune the board. Self-bootstraps.
+    branch_prefix: maintenance-housekeeping
+    needs_backlog: false
+    terminal_agent: housekeeper
+    steps:
+      - id: keep
+        agent: housekeeper
+        args: []
+
+  maintenance-retro:
+    description: Evaluate agent-team effectiveness from the activity log; propose improvements. Self-bootstraps (skips Scout), off the board, no merge.
+    branch_prefix: maintenance-retro
+    needs_backlog: false
+    # NOTE: like housekeeping, Retrospective self-bootstraps and is NOT on the
+    # board. terminal_agent names the sole agent for schema symmetry; there is
+    # no board row to move to Done. The agent stops on empty (no runs + no
+    # events) without creating a branch.
+    terminal_agent: retrospective
+    steps:
+      - id: evaluate
+        agent: retrospective
+        args: []
+
+  spec:
+    description: One-shot Spec Extraction from existing code; self-bootstraps (skips Scout). Ends with a classical-views projection on the same spec branch.
+    branch_prefix: spec
+    needs_backlog: false
+    # NOTE: Spec Reviewer is the board-terminal agent (moves the row to Done)
+    # per .agents/README.md and .agents/context.md; the trailing `views` step
+    # runs last in the step chain but does not touch the board.
+    terminal_agent: spec-reviewer
+    # NOTE: No on_block edge. The Spec Reviewer's prompt-level autonomous
+    # override (in .claude/commands/spec-reviewer.md) records BLOCKERs in
+    # spec-review.md and continues; there is no rework agent to loop back to.
+    # The downstream views step runs unconditionally — to refresh views
+    # after a human resolves BLOCKERs, re-run /pipeline spec.
+    # Collision check (re-runs would clobber .docs/spec/) lives inside the
+    # Context Loader. The trailing `views` step is invoked with the
+    # `--embedded` sentinel; spec-views refuses any other invocation and
+    # commits the six view files onto the spec branch (no separate
+    # branch, no extra board row, journal appended to the spec workspace).
+    steps:
+      - id: context
+        agent: spec-context-loader
+        args: [$input]
+      - id: map
+        agent: spec-cartographer
+        args: []
+      - id: domain
+        agent: spec-domain-modeler
+        args: []
+      - id: behavior
+        agent: spec-behavior-extractor
+        args: []
+      - id: synth
+        agent: spec-synthesizer
+        args: []
+      - id: review
+        agent: spec-reviewer
+        args: []
+      - id: views
+        agent: spec-views
+        args: [--embedded, $input]

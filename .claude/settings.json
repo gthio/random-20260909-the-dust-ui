@@ -1,0 +1,46 @@
+{
+  "hooks": {
+    "SessionStart":     [ { "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/activity/log_event.py\"" } ] } ],
+    "UserPromptSubmit": [ { "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/activity/log_event.py\"" } ] } ],
+    "PreToolUse":       [ { "matcher": "*", "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/activity/log_event.py\"" } ] } ],
+    "PostToolUse":      [ { "matcher": "*", "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/activity/log_event.py\"" } ] } ],
+    "Stop":             [ { "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/activity/log_event.py\"" } ] } ],
+    "SubagentStop":     [ { "hooks": [ { "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR/.agents/activity/log_event.py\"" } ] } ]
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.anthropic.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(git:*)",
+      "Bash(uv:*)",
+      "Bash(make:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(echo:*)",
+      "Bash(curl localhost:*)",
+      "Bash(curl -s localhost:*)",
+      "Bash(curl -i localhost:*)",
+      "Bash(pkill -f:*)",
+      "Bash(python3 .agents/check-workflows.py)",
+      "Bash(python3 .agents/check-references.py)",
+      "Bash(bash .agents/check-chassis.sh)",
+      "Bash(python3 .agents/activity/log_event.py)",
+      "Bash(python3 .agents/activity/extract_metrics.py)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git reset --hard:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/secrets/**)"
+    ]
+  }
+}
