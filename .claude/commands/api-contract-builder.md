@@ -23,6 +23,6 @@ Follow the detailed process and requirements in [.agents/prompts/api-contract-bu
 
 ## Next Step
 
-After the human reviews the Draft and sets `Status: Frozen`, slice it by invoking `/refiner .docs/contracts/<short-name>-api-contract.md` to produce the dependency-ordered feature backlog.
+After the human reviews the Draft and sets `Status: Frozen` (in a program home repo, run `/program-baseline` first to refresh the cross-repo baseline), slice it by invoking `/refiner .docs/contracts/<short-name>-api-contract.md` to produce the dependency-ordered feature backlog.
 
 Begin authoring now.

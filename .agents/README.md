@@ -43,7 +43,7 @@ These commands sit outside the agent roster — they don't change source and are
 ### Intake
 > Digest **raw material** — a slide deck export, a spec folder with fixtures and guides, an email thread, a chat paste — into an **intake record**: a cited summary and stated scope, the shape each unit of work has (`brief` / `story` / `functional-spec` / `sketch` / `program` / design bundle / existing codebase) and the planning agent that consumes it, what that agent needs that the material lacks, numbered questions (blocking first, each with what it blocks, evidence, a default, an owner — a contradiction between sources cites both sides), and a stack proposal drawn only from the `stack-notes/<language>/` sets on disk. Where the route needs a brief or a stack decision the material does not provide, it **drafts** that file in template shape with `<TBD Q-NN>` markers, never invented values; a spec already in the repo is passed to the route by path, never rewritten. Repeatable — run it whenever new work arrives; a re-run overwrites the record and keeps its decisions. **Skips Scout** — it writes `.docs/requirements/` only; no branch, no workspace, no board row. It digests; the route decides.
 
-`raw material` (any path, any name — conventionally under `.docs/requirements/`) → `/intake` → **GATE: Answer blocking questions; replace the drafts' `<TBD>`s** → the route the record names: `/founder-architect` | `/groundwork` | `/refiner` | `/api-contract-builder` | `/refiner-program` | `/refiner-ui` | `/pipeline spec`
+`raw material` (any path, any name — conventionally under `.docs/requirements/`) → `/intake` → **GATE: fill the answer sheet (`<ID>-answers-…`); `/intake <record>` folds it into the drafts; `check-intake.py` clean** → the route the record names: `/founder-architect` | `/groundwork` | `/refiner` | `/api-contract-builder` | `/refiner-program` | `/refiner-ui` | `/pipeline spec`
 
 ### Product Bootstrap
 > One-shot decomposition of a Product Brief into `PRODUCT.md` plus a dependency-ordered feature backlog. Runs once at project start, before any feature workflow. **Skips Scout** — there is no per-feature workspace yet.
@@ -72,7 +72,7 @@ These commands sit outside the agent roster — they don't change source and are
 ### API Contract
 > Translate **one** intent — a product brief, story, functional spec, or surface sketch — into a single reviewable **Draft API contract** (`templates/human-contract-api.md` shape). Repeatable — run it per API surface. **Skips Scout** — it writes a contract doc only; it creates no branch on `src/` and no board row. Pins observable wire behavior at the boundary; applies the knowledge repo's `api-design` / `security` / `resilience` rules, read fresh each run. Feeds Refinement: the Frozen contract is the unit of work `/refiner` slices.
 
-`brief / story / surface sketch` (`.docs/requirements/`) → `/api-contract-builder` → **GATE: Review + Freeze the contract** → `/refiner` → ...
+`brief / story / surface sketch` (`.docs/requirements/`) → `/api-contract-builder` → **GATE: Review + Freeze the contract** → _(program home repo: `/program-baseline`)_ → `/refiner` → ...
 
 ### Refinement
 > Slice **one** story, functional spec, or API contract into a dependency-ordered backlog of vertical-slice feature specs. Repeatable — run it whenever a new unit of work arrives (unlike Founder Architect, which bootstraps the whole product once). **Skips Scout** — it queues feature specs only; it creates no branch or workspace. Applies the `vertical-slicing` principle (`SLICE-*`) from the knowledge repo, read fresh each run.
@@ -92,7 +92,14 @@ These commands sit outside the agent roster — they don't change source and are
 ### Program Refinement
 > Articulate **one** raw, program-level requirement — a brief, story, or design handoff spanning multiple repos (UI, service, contract, database) — into thin cross-repo **program stories**, then split each into per-repo **sub-stories** plus an API-contract delta, handing each sub-story off by committing it into the owning repo's backlog. Runs from the **program home repo** (where the contracts live), resolving siblings via the `role → path` map in its `AI.md`. Sub-stories are **Refiner input, not feature specs** — each repo's `/refiner` / `/refiner-ui` slices them locally, so this agent decides *who owes what*, never *how a repo builds it*. Design bundles cross **raw** to the UI repo (by reference, into that repo's `.docs/requirements-ui/`); the service repo sees the **contract only**. Repeatable — re-runs reconcile: queued sub-stories are superseded in place, in-flight work gets a delta story queued behind it, never an edit. **Skips Scout** — it writes the contract delta, a program record (`.docs/program/`), and queued sub-stories only; no branch, no workspace. Applies `vertical-slicing` at program altitude (a slice crosses repos), plus `api-design` / `security` / `resilience` for the contract delta, read fresh each run.
 
-`program requirement / design handoff` (`.docs/requirements/<ID>-program-<short>`) → `/refiner-program` → **GATE: Review program record + contract delta; freeze the contract** _(then per repo: `/refiner` or `/refiner-ui` → `/scout` → ...)_
+`program requirement / design handoff` (`.docs/requirements/<ID>-program-<short>`) → `/refiner-program` → **GATE: Review program record + contract delta; freeze the contract** → `/program-baseline` _(then per repo: `/refiner` or `/refiner-ui` → `/scout` → ...)_
+
+### Program Baseline
+> Derive the **cross-repo baseline** — what crosses the wire between the sibling repos and **who proves each part of it** — from the `Frozen` contract(s) in `.docs/contracts/`, the intake decisions, each sibling's spec views, and (after a program-refiner run) the program record. One persistent file, `.docs/program/baseline.md` (`templates/agent-program-baseline.md` shape): wire vocabulary, header handshake, shared fixtures, the contract's conformance checklist split by prover (producer / consumer / both / joint / human gate), the paired constants nothing enforces, local topology, and the joint smoke list. It **decides nothing** and links per-repo detail instead of restating it. Runs in the **program home repo** only, refuses a `Draft` contract, reads no source tree. **Skips Scout** — docs only, on the current branch: no branch, no workspace, no board row. Repeatable: re-runs regenerate the derived sections in place, keep human-marked open items, and append a run-log entry.
+>
+> **When to run it:** once before development starts, then after **every contract freeze** — whether the freeze followed `/refiner-program` or `/api-contract-builder` — before any sibling refines against the new version. Not a gate: siblings build against the `Frozen` contract, not against this file.
+
+`Frozen contract(s)` (`.docs/contracts/`) → `/program-baseline` → **GATE: Review the baseline** _(then per repo: `/groundwork` on a first run, or `/refiner` / `/refiner-ui` on its sub-story after a freeze)_
 
 ### Spec Extraction
 > One-shot extraction of a language-agnostic specification of an existing codebase into `.docs/spec/`, so a downstream group of design + build agents can rebuild the system in another language (or another runtime) with a verifiable behavioral surface. **Skips Scout** — context-loader self-bootstraps the branch and workspace, like Product Bootstrap.
@@ -157,7 +164,7 @@ These commands sit outside the agent roster — they don't change source and are
 
 | Agent                | Command              | Role                                                              |
 | :------------------- | :------------------- | :---------------------------------------------------------------- |
-| **Intake Analyst**   | `/intake`            | Intake: raw material → intake record (cited summary, route, gaps, questions, stack proposal) + draft brief / stack files with `<TBD>`s (repeatable; first when new work arrives). |
+| **Intake Analyst**   | `/intake`            | Intake: raw material → intake record (cited summary, route, gaps, stack proposal) + an answer sheet of `Q-NN` blocks the human fills + draft brief / stack files with `<TBD>`s; re-run on the record folds the answers in (repeatable; first when new work arrives). |
 | **Founder Architect**| `/founder-architect` | Bootstrap: brief → `PRODUCT.md` + feature backlog (one-shot).         |
 | **Groundwork**       | `/groundwork`        | Bootstrap: spec → stack gate + `.docs/`/`AI.md`/`CLAUDE.md` scaffold + initiation backlog (one-shot). Extracted spec → Full; functional spec in `.docs/requirements/` → Requirement; no spec / `--init` → Init (scaffold only). |
 | **API Contract Builder** | `/api-contract-builder` | Author: brief / story / sketch → Draft API contract (repeatable).  |
@@ -165,6 +172,7 @@ These commands sit outside the agent roster — they don't change source and are
 | **Refiner (UI)**     | `/refiner-ui`        | Slice one design handoff bundle → queued UI feature backlog + design map (repeatable). |
 | **Chassis Refiner**  | `/refiner-chassis`   | Diff non-functional spec view vs delivered code → queued chassis backlog + deferred list (repeatable). |
 | **Program Refiner**  | `/refiner-program`   | Articulate one program-level requirement → cross-repo program stories → per-repo sub-stories + contract delta, handed off into sibling backlogs (repeatable). |
+| **Program Baseliner** | `/program-baseline` | Derive `.docs/program/baseline.md` — the cross-repo seam: wire vocabulary, fixtures, conformance rows by prover, paired constants, joint smoke — from Frozen contracts + sibling spec views (repeatable; program home repo only). |
 | **Scout**            | `/scout`             | Setup: create branch, scaffold workspace, update board.           |
 | **Architect**   | `/architect`       | Design: feature spec → technical spec.                                     |
 | **Test Writer** | `/developer-tests` | TDD: write failing tests from design.                             |

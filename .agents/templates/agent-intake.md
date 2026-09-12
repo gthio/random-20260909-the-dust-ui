@@ -8,10 +8,11 @@ Kind: intake
 Source: intake
 Raw:                     # every human-dropped path this record digests, as given (never moved or renamed)
   - <.docs/requirements/<as-dropped>/>
+Answers: .docs/requirements/<ID>-answers-<short-name>.md   # the human's answer sheet (templates/human-intake-answers.md)
 Last run: <YYYY-MM-DD>
 ```
 
-_Written by `/intake`. One record per requirement — related material of several shapes (a deck and a spec folder for the same product) is one record with one row per unit of work in § 3. A re-run overwrites § 1–§ 6 and keeps § 7. Every claim cites the raw material (`<path> § n` / slide title / page); a line with no citation is an inference and says so._
+_Written by `/intake`. One record per requirement — related material of several shapes (a deck and a spec folder for the same product) is one record with one row per unit of work in § 3. A re-run on changed material overwrites § 1–§ 6, keeps every existing `Q-NN` (IDs never renumber), and keeps § 7. A re-run with answers filled in the answer sheet is a **resolve run**: it folds them into § 7 and the drafts and touches nothing else. Every claim cites the raw material (`<path> § n` / slide title / page); a line with no citation is an inference and says so._
 
 ## 1. Sources
 
@@ -63,11 +64,11 @@ _Observations and a proposal — never a decision. If code, a build manifest, or
 
 ## 5. Questions
 
-_Blocking first. **Blocking** = the route cannot start, or would harden a guess, until answered. A contradiction between sources is a question whose Evidence cites both sides. Non-blocking questions carry into the route's own open-questions section with the default applied._
+_An **index** of the answer sheet — the questions in full (options, evidence, default, answer slots) live in `.docs/requirements/<ID>-answers-<short-name>.md`, one block per `Q-NN`, blocking first. **Blocking** = the route cannot start, or would harden a guess, until answered. A contradiction between sources is a question whose Evidence cites both sides. Non-blocking questions carry into the route's own open-questions section with the default applied. `Status` is `open`, `answered` (folded into § 7), or `retired` (no longer applies after a re-run); IDs never renumber._
 
-| ID | Question | Blocks | Evidence | Default if unanswered | Owner | Blocking? |
-| :-- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Q-01 | <…> | <which decision / which route> | `<cite>` (↔ `<cite>` for a contradiction) | <…> | `<product / engineering / legal / ops>` | <yes / no> |
+| ID | Title | Blocks | Owner | Blocking? | Status |
+| :-- | :--- | :--- | :--- | :--- | :--- |
+| Q-01 | <short title> | <which decision / which route> | `<product / engineering / legal / ops>` | <yes / no> | open |
 
 ## 6. Handoff
 
@@ -75,18 +76,21 @@ _Blocking first. **Blocking** = the route cannot start, or would harden a guess,
 | :--- | :--- | :--- | :--- |
 | `.docs/requirements/<ID>-brief-<short-name>.md` | `templates/human-product.md` | <Q-NN, …> | `/founder-architect` |
 | `.docs/requirements/<ID>-stack-<short-name>.md` | `templates/human-stack.md` | <Q-NN, …> | `/groundwork` |
+| `.docs/requirements/<ID>-answers-<short-name>.md` | `templates/human-intake-answers.md` | — (the human fills it) | `/intake <record>` — resolve run folds it into § 7 and the drafts |
 
 ```text
 Record:    .docs/requirements/<ID>-intake-<short-name>.md
+Answers:   .docs/requirements/<ID>-answers-<short-name>.md
 Route:     <U1 → /<agent> <args>; U2 → /<agent> <args>>
-Blocking:  <Q-01, Q-03 | none>
-Review:    <drafts above — replace every <TBD> | none>
-Next:      <exact command(s), in order, runnable once Blocking and Review are cleared>
+Blocking:  <Q-01, Q-03 | none>  — answer them in the sheet
+Fold:      /intake .docs/requirements/<ID>-intake-<short-name>.md   (replaces the drafts' <TBD>s from your answers)
+Check:     python3 .agents/check-intake.py .docs/requirements/<ID>-intake-<short-name>.md
+Next:      <exact command(s), in order, runnable once Check is clean>
 ```
 
 ## 7. Decisions
 
-_Answered questions land here verbatim and keep their Q-ID. Survives re-runs._
+_Filled by `/intake` on a resolve run, from the answer sheet — never typed here by hand. Answers land verbatim and keep their Q-ID. Survives re-runs._
 
 | Date | ID | Decision | Rationale | Owner |
 | :--- | :-- | :--- | :--- | :--- |

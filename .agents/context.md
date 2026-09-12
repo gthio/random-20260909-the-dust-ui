@@ -79,6 +79,7 @@ Raw, human-authored **prose** intent — the input the planning agents read befo
   | `program` | Program-level requirement spanning repos | `/refiner-program` (program home repo only) |
   | `stack` | Stack decision — only the values the knowledge repo cannot supply: language + framework, the three names, the entrypoint, the knowledge-repo path (`templates/human-stack.md` shape) | `/groundwork` |
   | `intake` | Intake record (`templates/agent-intake.md` shape) — agent-authored by `/intake`: cited summary, route per unit of work, gaps, `Q-NN` questions, stack proposal, drafts written. Re-runs overwrite it and keep its decisions | the human at the gate; the route it names |
+  | `answers` | Answer sheet (`templates/human-intake-answers.md` shape) — written by `/intake`, **filled by the human**: one block per `Q-NN` with lettered options, a marked default, and `Answer:` / `Rationale:` slots. `/intake <record>` folds filled answers into the record's § 7 and the drafts' `<TBD Q-NN>` markers; `python3 .agents/check-intake.py` confirms the gate is clear | the human; `/intake` (resolve run) |
 
 - `<short-name>` is 2-3 kebab-case words.
 
@@ -120,6 +121,7 @@ Templates use a `human-` / `agent-` prefix to signal the filler. Workspace artif
 | Template                                                 | Who Fills         | Purpose                                |
 | -------------------------------------------------------- | ----------------- | -------------------------------------- |
 | [agent-intake.md](templates/agent-intake.md)             | Intake Analyst    | Intake record: cited summary, route per unit of work, gaps, `Q-NN` questions, stack proposal, drafts written (drafts use `human-product.md` / `human-stack.md` with `<TBD Q-NN>` markers) |
+| [human-intake-answers.md](templates/human-intake-answers.md) | Human (blocks written by Intake Analyst) | Answer sheet: one block per `Q-NN` — options, default, evidence, `Answer:` / `Rationale:` slots; folded back by `/intake <record>` |
 
 ### Product Bootstrap
 
@@ -161,6 +163,7 @@ Templates use a `human-` / `agent-` prefix to signal the filler. Workspace artif
 | Template                                                             | Who Fills        | Purpose                                                                                                  |
 | -------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------- |
 | [agent-program-record.md](templates/agent-program-record.md)         | Program Refiner  | Program record: stories, split rationale, story index, interface index, run log                          |
+| [agent-program-baseline.md](templates/agent-program-baseline.md)     | Program Baseliner | Cross-repo baseline: wire vocabulary, header handshake, fixtures, conformance rows by prover, paired constants, topology, joint smoke, run log |
 | [human-contract-api.md](templates/human-contract-api.md)             | Human (engineer) | HTTP API contract — wire-behavior source of truth for an HTTP boundary                                   |
 | [human-contract-interface.md](templates/human-contract-interface.md) | Human (engineer) | Non-HTTP boundary contract — DB schema, event/topic, shared types, file format, handshake, shared config |
 
@@ -208,6 +211,8 @@ The Spec Extraction workflow also writes a **persistent** spec folder at `.docs/
 The Architecture Documenter (`/generate-documentation-architecture`) likewise maintains a **persistent** folder at `.docs/documentation/architecture/` — `overview.md` (DOC-003 system overview, with its sequence + component Mermaid diagrams inline) and `adr/` (immutable dated ADRs, each sourced from the feature design or `AI.md` note that made the decision). It has **no per-run workspace**: it runs on the current branch, cuts no branch, and writes no board row.
 
 In a **program home repo** (the repo owning the API contracts, with a § Program Repos map in its AI doc), the Program Refiner (`/refiner-program`) likewise maintains a **persistent** folder at `.docs/program/<PID>-<short-name>/` — `record.md` (shape: `templates/agent-program-record.md`) holds the program stories, the **split rationale**, a *resolvable* story index (repo path → local ID → sub-story path; the repo's board follows from its path), an **interface index** naming every boundary the program changes with its contract path and `Draft`/`Frozen` status, the dependency map, and a run log. Long-lived like `.docs/spec/`, never archived by the Housekeeper, no per-run workspace: no branch, no board row of its own. It is **not a status board** — each sibling repo's `.docs/board.md` owns its own rows, and the record never mirrors them; sub-story status appears only as a dated snapshot inside a run-log entry. Contracts live in the repo's `.docs/contracts/` — `<short-name>-api-contract.md` (the `human-contract-api.md` shape) for HTTP surfaces, `<boundary-name>-interface-contract.md` (the `human-contract-interface.md` shape) for every other crossed boundary. The raw requirements that trigger these programs live in the persistent `.docs/requirements/` folder (§ Requirements, under Backlog) — human-authored, never archived, each file the amendment anchor its record's § 1 Source points at. The design bundle a program hands to its UI repo lands in *that* repo's persistent `.docs/requirements-ui/` (§ UI requirements).
+
+The Program Baseliner (`/program-baseline`) keeps one more persistent file in that folder, `.docs/program/baseline.md` (shape: `templates/agent-program-baseline.md`) — the seam between the siblings, derived from the `Frozen` contracts and each sibling's spec views: wire vocabulary, header handshake, shared fixtures, the contract's conformance checklist split by prover, the paired constants nothing enforces, local topology, and the joint smoke list. Regenerated in place after every contract freeze; open-item rows marked `(human)` and the run log survive a run. Same lifetime rules as the program records — never archived, no workspace, no branch, no board row — and it is an orientation, not a gate: siblings build against the `Frozen` contract.
 
 ### Activity log
 

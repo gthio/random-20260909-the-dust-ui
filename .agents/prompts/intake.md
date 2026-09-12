@@ -37,6 +37,11 @@ there without a human retyping it.
    (`PRODUCT.md`, an existing contract, a sibling repo). Read what is
    given; do not hunt the tree for more — except the repo-state checks
    in step 4, which are yours to run.
+3. **An existing record (resolve run)** — `$input` may instead be an
+   intake record you wrote earlier (or its answer sheet). If the
+   sheet has at least one filled `Answer:`, this is a **resolve run**:
+   do step 8 only. If it has none and the raw paths are unchanged,
+   say so and stop — there is nothing to fold and nothing to re-read.
 
 If the material is missing or unreadable, stop and ask the human.
 
@@ -137,14 +142,21 @@ one proposal with a one-line reason and at most two alternatives. No
 trade-off matrices.
 
 **Questions.** Every gap, ambiguity, and contradiction is a numbered
-`Q-NN` row: the question, **which downstream decision it blocks**, the
-evidence (a citation, or "silent"; a contradiction cites **both**
-sides), the proposed default if unanswered, the owner (product /
-engineering / legal / ops), and whether it is **blocking** — the route
-cannot start, or would harden a guess (a stack, a repo split, a legal
-posture), until answered. Blocking first. Never resolve a contradiction
-by picking the side you prefer. Do not manufacture questions to look
-thorough: a question with no decision behind it is noise at the gate.
+`Q-NN` **block in the answer sheet** (`templates/human-intake-answers.md`):
+a short title, **which downstream decision it blocks**, the question
+**stated as a choice**, the **options** the material supports —
+lettered, the proposed default marked `(default)`, `other — describe`
+last — the evidence (a citation, or "silent"; a contradiction cites
+**both** sides), the owner (product / engineering / legal / ops), and
+whether it is **blocking** — the route cannot start, or would harden a
+guess (a stack, a repo split, a legal posture), until answered. Blocking
+blocks first, under `## Blocking`; the rest under `## Non-blocking`.
+Every block starts `Status: open` with empty `Answer:` / `Rationale:`
+slots. The record's § 5 is an **index** of the sheet (ID, title,
+blocks, owner, blocking, status) — never a second copy of the text.
+Never resolve a contradiction by picking the side you prefer. Do not
+manufacture questions to look thorough: a question with no decision
+behind it is noise at the gate.
 
 ### 6. Draft what the route needs and the material lacks
 
@@ -171,6 +183,12 @@ honest.**
   (email, chat) is transcribed verbatim to
   `.docs/requirements/<ID>-story-<short-name>.md` with the provenance
   line; a transcription has no TBDs.
+- **Answer sheet** — `.docs/requirements/<ID>-answers-<short-name>.md`,
+  `templates/human-intake-answers.md` shape — written whenever § 5 has
+  at least one question. It **shares the record's `<ID>`** (it is the
+  record's companion, not a draft that takes the next `NN`). It is the
+  human's file: they answer in it, you only ever change a block's
+  `Status` line.
 
 Never draft feature specs, `PRODUCT.md`, `AI.md`, contracts, board
 rows, or backlog items — those belong to the routes.
@@ -185,9 +203,16 @@ continue the day's `NN` (never assume `01`); drafts take the following
 by the blocking questions and the drafts to review — never a bare
 "run `/groundwork`" while a `<TBD>` remains in the file it would read.
 
-**Re-run:** a record for the same raw paths already exists → overwrite
-§ 1–§ 6 from the current material and keep § 7 Decisions (answered
-questions keep their IDs).
+**Re-run (material changed):** a record for the same raw paths already
+exists → overwrite § 1–§ 6 from the current material and keep § 7.
+**IDs are stable:** a `Q-NN` whose question still stands keeps its
+number and its block in the answer sheet, with the human's `Answer:`
+and `Rationale:` untouched; a new question takes the next unused
+number; a question that no longer applies is marked `Status: retired`
+in both files — never deleted, never renumbered.
+
+**Resolve run** (answer sheet has filled answers, material unchanged):
+step 8 only.
 
 Before you commit:
 
@@ -201,6 +226,38 @@ Before you commit:
       question is in the handoff.
 - [ ] No human-dropped file was moved, renamed, or edited; nothing was
       written outside `.docs/requirements/`.
+- [ ] Every question is a block in the answer sheet with lettered
+      options and one marked default; § 5 indexes them; no `Q-NN`
+      from a previous run was renumbered.
+- [ ] `python3 .agents/check-intake.py <record>` was run and its
+      output is in the handoff (it fails while blocking questions are
+      open — that is the expected state after a first run).
+
+### 8. Resolve run — fold the human's answers
+
+Read the answer sheet. For every block with a non-empty `Answer:` and
+`Status: open`:
+
+1. **§ 7 Decisions** — append one row: today's date, the `Q-NN`, the
+   `Answer:` text verbatim, the `Rationale:` text verbatim (or `—`),
+   the owner. Then set the block's `Status: answered` in the sheet and
+   in the record's § 5 index.
+2. **Drafts** — replace every `<TBD Q-NN>` that names this question.
+   A marker that asks for the answer itself takes it directly. A marker
+   that asks for a value the answer *implies* (a stack answer implies
+   `language`, `framework`, `path`, `run`, the manifest…) is derived
+   from the answer plus `stack-notes/<language>/` under the draft's
+   § Not in this file rule — transcribe what the notes state, take the
+   names from the answer, and leave as `<TBD Q-NN>` anything neither
+   settles, saying so in the handoff. **Never guess** to clear a marker.
+3. **Touch nothing else** — § 1–§ 6 stay as they are except the § 5
+   status column and the § 6 `Blocking:` line.
+4. Run `python3 .agents/check-intake.py <record>`; put its output in
+   the handoff. Commit (see below), print the handoff, stop.
+
+An `Answer:` that contradicts the material is still the human's
+decision — record it, and note the contradiction in the § 7 row's
+rationale cell, never in the answer text.
 
 ## Output
 
@@ -209,7 +266,10 @@ Before you commit:
    `<ID>-story-…` — only those the route needs and the material lacks.
 3. A **raw copy** under `.docs/requirements/` — only when the material
    came from outside the repo or inline.
-4. **Handoff summary** to the human — the record's § 6 block, verbatim.
+4. **Answer sheet** — `.docs/requirements/<ID>-answers-<short-name>.md`
+   (`templates/human-intake-answers.md`), whenever § 5 is non-empty.
+5. **Handoff summary** to the human — the record's § 6 block, verbatim,
+   followed by the `check-intake.py` output.
 
 ### Commit
 
@@ -220,7 +280,20 @@ git commit -m "intake(<short-name>): digest raw material — <N> units, <N> bloc
 - Raw: <paths, as dropped>
 - Route: <U1 → /<agent>; U2 → /<agent>>
 - Drafts: <paths | none>
+- Answers: <path | none>
 - Blocking: <Q-IDs | none>
+"
+```
+
+Resolve run:
+
+```bash
+git add .docs/requirements/<ID>-intake-<short-name>.md .docs/requirements/<ID>-answers-<short-name>.md   # + each draft touched
+git commit -m "intake(<short-name>): resolve answers — <Q-IDs folded>; <N> TBDs replaced, <N> still open
+
+- Answered: <Q-IDs>
+- Drafts updated: <paths | none>
+- Still open: <Q-IDs | none>; remaining TBDs: <count>
 "
 ```
 
@@ -239,6 +312,9 @@ git commit -m "intake(<short-name>): digest raw material — <N> units, <N> bloc
    `PRODUCT.md`, no `AI.md`, no board rows, no branch.
 7. **Commit, hand off, stop.** The route runs after the human's
    answers, never from you.
+8. **IDs are stable; answers are the human's.** A `Q-NN` keeps its
+   number for life. You never edit an `Answer:` or `Rationale:` — you
+   copy them and flip the `Status` line.
 
 ## Anti-Patterns to Avoid
 
@@ -253,6 +329,10 @@ git commit -m "intake(<short-name>): digest raw material — <N> units, <N> bloc
 | Resolve "deck says X, spec says Y" by picking one | One `Q-NN` citing both sides |
 | Ask twenty questions to look thorough | Only questions with a decision behind them; blocking first |
 | Auto-run the route after committing | Print the handoff and stop |
+| Ask an open-ended question with no options | Lettered options from the material, the default marked, `other — describe` last |
+| Renumber questions on a re-run | Keep every `Q-NN`; append new ones; mark the obsolete `retired` |
+| Clear a `<TBD>` the answer does not settle | Leave it, and say so in the handoff |
+| Edit the human's `Answer:` text | Copy it verbatim into § 7; change only the `Status` line |
 
 ## If Unclear
 
@@ -272,6 +352,8 @@ git commit -m "intake(<short-name>): digest raw material — <N> units, <N> bloc
 - Record template: `.agents/templates/agent-intake.md`
 - Draft shapes: `.agents/templates/human-product.md`,
   `.agents/templates/human-stack.md`
+- Answer sheet: `.agents/templates/human-intake-answers.md`; gate
+  check: `python3 .agents/check-intake.py <record>`
 - Requirements convention (raw drops, `<KIND>` table, ID minting):
   `.agents/context.md` (Requirements section)
 - Routes: `.agents/prompts/founder-architect.md`,
@@ -285,5 +367,6 @@ git commit -m "intake(<short-name>): digest raw material — <N> units, <N> bloc
 
 ---
 
-_Human Gate: answer the blocking questions, replace the `<TBD>`s in the
-drafts, then run the route the record names._
+_Human Gate: answer the blocking questions in the answer sheet, re-run
+`/intake <record>` to fold them into the drafts, confirm
+`check-intake.py` is clean, then run the route the record names._

@@ -24,6 +24,6 @@ Follow the detailed process and requirements in [.agents/prompts/refiner-program
 
 ## Next Step
 
-After the human reviews the program record and **freezes the contract**, each repo refines its sub-story locally: `/refiner .docs/backlog/<local-ID>-program-story-<short-name>.md` (or `/refiner-ui .docs/requirements-ui/<ID>-<short-name>/` for the design bundle, naming the sub-story as related context), then the normal per-feature chain drains from there.
+After the human reviews the program record and **freezes the contract**, run `/program-baseline <PID>` here to refresh the cross-repo baseline; then each repo refines its sub-story locally: `/refiner .docs/backlog/<local-ID>-program-story-<short-name>.md` (or `/refiner-ui .docs/requirements-ui/<ID>-<short-name>/` for the design bundle, naming the sub-story as related context), then the normal per-feature chain drains from there.
 
 Begin program refinement now.
